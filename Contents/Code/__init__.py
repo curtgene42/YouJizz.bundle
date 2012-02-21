@@ -160,10 +160,15 @@ def Search(sender,url,query='',SearchType='search'):
 ####################################################################################################
 
 def PlayVideo(sender, url):
-	content = HTTP.Request(url).content
-	vidurl = re.compile('so.addVariable\("file","(.+?)"\)').findall(content, re.DOTALL)
+	request = HTTP.Request(url)
+	content = request.content
+	headers = request.headers
+	#Log(content)
+	#Log(headers)
+	#vidurl = re.compile('so.addVariable\("file","(.+?)"\)').findall(content, re.DOTALL)
+	vidurl = re.compile('so.addVariable\("file",encodeURIComponent\("(.+?)"\)\)').findall(content, re.DOTALL)
+	#Log(vidurl)
 	if len(vidurl) > 0:
-		Log(vidurl[0])
 		return Redirect(vidurl[0])
 	else:
 		return None
