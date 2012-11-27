@@ -7,6 +7,7 @@ ICON = 'icon-default.png'
 ICON_PREFS  = 'icon-prefs.png'
 
 YJ_BASE = 'http://www.youjizz.com'
+VJ_EMBED = 'http://www.youjizz.com/videos/embed/'
 YJ_POPULAR = 'http://www.youjizz.com/most-popular/%s.html'
 YJ_NEWEST = 'http://www.youjizz.com/newest-clips/%s.html'
 YJ_TOPRATED = 'http://www.youjizz.com/top-rated/%s.html'
@@ -109,8 +110,9 @@ def MovieList(sender,url,page=1):
 #	Log('randomArt: '+str(randomArt)+' | ART: '+ART)
 	for videoItem in pageContent.xpath('//span[@id="miniatura"]'):
 		videoItemTitle = videoItem.xpath('span[@id="title1"]')[-1].text.strip()
-		videoItemLink  = YJ_BASE + videoItem.xpath("span/a")[0].get('href')
-		videoItemThumb = videoItem.xpath('span/img')[0].get('src')
+		videoItemLink  = YJ_BASE + videoItem.xpath('span/a[@class="frame"]')[0].get('href')
+		videoItemID = re.compile('[0-9]+').findall(videoItemLink, re.DOTALL)
+		videoItemThumb = videoItem.xpath('span/img[@class="lazy"]')[0].get('data-original')
 		duration = videoItem.xpath('span[@id="title2"]/span[@class="thumbtime"]/span')[-1].text.strip()
 		videoItemViews = videoItem.xpath('span[@id="title2"]/span[@class="thumbviews"]/span')[-1].text.strip()
 		videoItemRating = round(((float(videoItem.xpath('span[@id="title2"]/span[@class="thumbrating"]/span')[0].get('style').strip('width: ').strip('px;')))/17*2),2)
@@ -118,7 +120,7 @@ def MovieList(sender,url,page=1):
 		videoItemSummary += '\r\nViews: ' + videoItemViews
 		videoItemSummary += '\r\nRating: ' + str(videoItemRating)
 		videoItemDuration = GetDurationFromString(duration)
-		dir.Append(Function(VideoItem(PlayVideo, title=videoItemTitle, summary=videoItemSummary, duration=videoItemDuration, rating=videoItemRating, thumb=Function(Thumb, url=videoItemThumb)), url=videoItemLink))
+		dir.Append(Function(VideoItem(PlayVideo, title=videoItemTitle, summary=videoItemSummary, duration=videoItemDuration, rating=videoItemRating, thumb=Function(Thumb, url=videoItemThumb)), url=videoItemLink, vid=videoItemID[0]))
 	if len(pageContent.xpath('//div[@id="pagination"]/a[contains(text(),"Next")]')) == 1:
 		pagep = page+1
 		dir.Append(Function(DirectoryItem(MovieList, title='+++Next Page ('+str(pagep)+')+++'), url=url, page=pagep))
@@ -134,8 +136,9 @@ def SearchMovieList(sender,url,SearchQuery='anal',SearchType='categories',page=1
 	pageContent = HTML.ElementFromURL(url % (SearchQuery,str(page)))
 	for videoItem in pageContent.xpath('//span[@id="miniatura"]'):
 		videoItemTitle = videoItem.xpath('span[@id="title1"]')[-1].text.strip()
-		videoItemLink  = YJ_BASE + videoItem.xpath("span/a")[0].get('href')
-		videoItemThumb = videoItem.xpath('span/img')[0].get('src')
+		videoItemLink  = YJ_BASE + videoItem.xpath('span/a[@class="frame"]')[0].get('href')
+		videoItemID = re.compile('[0-9]+').findall(videoItemLink, re.DOTALL)
+		videoItemThumb = videoItem.xpath('span/img[@class="lazy"]')[0].get('data-original')
 		duration = videoItem.xpath('span[@id="title2"]/span[@class="thumbtime"]/span')[-1].text.strip()
 		videoItemViews = videoItem.xpath('span[@id="title2"]/span[@class="thumbviews"]/span')[-1].text.strip()
 		videoItemRating = round(((float(videoItem.xpath('span[@id="title2"]/span[@class="thumbrating"]/span')[0].get('style').strip('width: ').strip('px;')))/17*2),2)
@@ -143,7 +146,7 @@ def SearchMovieList(sender,url,SearchQuery='anal',SearchType='categories',page=1
 		videoItemSummary += '\r\nViews: ' + videoItemViews
 		videoItemSummary += '\r\nRating: ' + str(videoItemRating)
 		videoItemDuration = GetDurationFromString(duration)
-		dir.Append(Function(VideoItem(PlayVideo, title=videoItemTitle, summary=videoItemSummary, duration=videoItemDuration, rating=videoItemRating, thumb=Function(Thumb, url=videoItemThumb)), url=videoItemLink))
+		dir.Append(Function(VideoItem(PlayVideo, title=videoItemTitle, summary=videoItemSummary, duration=videoItemDuration, rating=videoItemRating, thumb=Function(Thumb, url=videoItemThumb)), url=videoItemLink, vid=videoItemID[0]))
 	if len(pageContent.xpath('//div[@id="pagination"]/a[contains(text(),"Next")]')) == 1:
 		pagep = page+1
 		dir.Append(Function(DirectoryItem(SearchMovieList, title='+++Next Page ('+str(pagep)+')+++'), url=url, SearchQuery=SearchQuery, page=pagep))
@@ -159,8 +162,9 @@ def Search(sender,url,query='',SearchType='search'):
 
 ####################################################################################################
 
-def PlayVideo(sender, url):
-	request = HTTP.Request(url)
+def PlayVideo(sender, url, vid=''):
+	fakereq = HTTP.Request(url)
+	request = HTTP.Request(VJ_EMBED + vid)
 	content = request.content
 	headers = request.headers
 	#Log(content)
